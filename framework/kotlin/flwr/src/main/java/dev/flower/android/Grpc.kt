@@ -21,24 +21,29 @@ internal class FlowerGrpc
     private val requestObserver = asyncStub.join(object : StreamObserver<ServerMessage> {
         override fun onNext(msg: ServerMessage) {
             try {
+                println("[GRPC] onNext: Received ServerMessage: type=${'$'}{msg.msgCase}")
                 sendResponse(msg)
             } catch (e: Exception) {
+                println("[GRPC][ERROR] Exception while handling onNext: ${'$'}{e.message}")
                 e.printStackTrace()
             }
         }
 
         override fun onError(t: Throwable) {
+            println("[GRPC][ERROR] Stream error: ${'$'}{t::class.qualifiedName}: ${'$'}{t.message}")
             t.printStackTrace()
             finishLatch.countDown()
         }
 
         override fun onCompleted() {
+            println("[GRPC] Stream completed by server")
             finishLatch.countDown()
         }
     })!!
 
     fun sendResponse(msg: ServerMessage) {
         val response = handleLegacyMessage(client, msg)
+        println("[GRPC] Sending ClientMessage: type=${'$'}{response.first.msgCase}")
         requestObserver.onNext(response.first)
     }
 }
@@ -63,10 +68,16 @@ internal suspend fun createChannel(address: String, useTLS: Boolean = false): Ma
     val channelBuilder =
         ManagedChannelBuilder.forTarget(address).maxInboundMessageSize(HUNDRED_MEBIBYTE)
     if (!useTLS) {
+        println("[GRPC] Using plaintext (no TLS)")
         channelBuilder.usePlaintext()
+    } else {
+        println("[GRPC] Using TLS")
     }
+    println("[GRPC] Building channel to address='${address}', maxInboundMessageSize=${HUNDRED_MEBIBYTE}")
     return withContext(Dispatchers.IO) {
-        channelBuilder.build()
+        val ch = channelBuilder.build()
+        println("[GRPC] Channel built: isTerminated=${ch.isTerminated}, isShutdown=${ch.isShutdown}")
+        ch
     }
 }
 
