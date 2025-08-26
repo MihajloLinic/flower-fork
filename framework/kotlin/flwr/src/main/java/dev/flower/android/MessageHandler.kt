@@ -3,18 +3,7 @@ package dev.flower.android
 import flwr.proto.Transport.ClientMessage
 import flwr.proto.Transport.ServerMessage
 import flwr.proto.Transport.Reason
-import flwr.proto.TaskOuterClass.TaskIns
-import flwr.proto.TaskOuterClass.TaskRes
 import java.lang.IllegalArgumentException
-
-
-internal fun handle(client: Client, taskIns: TaskIns): Triple<TaskRes, Int, Boolean> {
-    val serverMsg = getServerMessageFromTaskIns(taskIns, excludeReconnectIns = false)
-        ?: throw NotImplementedError()
-    val (clientMsg, sleepDuration, keepGoing) = handleLegacyMessage(client, serverMsg)
-    val taskRes = wrapClientMessageInTaskRes(clientMsg)
-    return Triple(taskRes, sleepDuration, keepGoing)
-}
 
 internal fun handleLegacyMessage(client: Client, serverMsg: ServerMessage): Triple<ClientMessage, Int, Boolean> {
     return when (serverMsg.msgCase.number) {
